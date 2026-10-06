@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/QuickPatch.Payments.Api/QuickPatch.Payments.Api.csproj" />
+    <Project Path="src/QuickPatch.Payments.Application/QuickPatch.Payments.Application.csproj" />
+    <Project Path="src/QuickPatch.Payments.Domain/QuickPatch.Payments.Domain.csproj" />
+    <Project Path="src/QuickPatch.Payments.Infrastructure/QuickPatch.Payments.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/integration/">
+    <Project Path="tests/integration/QuickPatch.Payments.IntegrationTests/QuickPatch.Payments.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/unit/">
+    <Project Path="tests/unit/QuickPatch.Payments.UnitTests/QuickPatch.Payments.UnitTests.csproj" />
+  </Folder>
+</Solution>
