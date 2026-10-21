@@ -65,7 +65,7 @@ public sealed class PaymentsEnvironment : IAsyncLifetime
             b.UseSetting("Kafka:ConsumerGroupId", "payments-pruebas");
             b.UseSetting("Outbox:PublisherRole", "payments_outbox");
             b.UseSetting("Outbox:PollInterval", "00:00:00.200");
-            b.UseSetting("Reconciliation:ReaderRole", "payments_reconciler");
+            b.UseSetting("Reconciliation:SchedulerRole", "payments_scheduler");
             b.UseSetting("Reconciliation:Interval", "00:00:00.200");
             b.UseSetting("Reconciliation:MinimumAge", "00:00:00");
             b.UseSetting("Jwt:PublicKeyPem", TestTokens.PublicKeyPem);

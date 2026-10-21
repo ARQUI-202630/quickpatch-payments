@@ -33,8 +33,8 @@ public sealed class ReconciliationOptions
 {
     public const string Section = "Reconciliation";
 
-    /// <summary>Rol <c>BYPASSRLS</c> de solo lectura sobre <c>payments</c> (DD 10.2). Vacío solo en desarrollo local.</summary>
-    public string ReaderRole { get; set; } = string.Empty;
+    /// <summary>Rol <c>payments_scheduler</c> (DD 10.2): <c>BYPASSRLS</c>, solo lee columnas de <c>payments</c>. Vacío solo en desarrollo local.</summary>
+    public string SchedulerRole { get; set; } = string.Empty;
 
     public bool Enabled { get; set; } = true;
 

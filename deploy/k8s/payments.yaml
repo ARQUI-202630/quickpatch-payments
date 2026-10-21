@@ -15,7 +15,7 @@ data:
   Kafka__ConsumerGroupId: "payments-service"
   Outbox__PublisherRole: "payments_outbox"
   # Conciliación de pagos sin respuesta de la pasarela (AC9-E5).
-  Reconciliation__ReaderRole: "payments_reconciler"
+  Reconciliation__SchedulerRole: "payments_scheduler"
   Reconciliation__Interval: "00:00:30"
   Reconciliation__MinimumAge: "00:00:30"
   Reconciliation__OrphanAge: "00:05:00"

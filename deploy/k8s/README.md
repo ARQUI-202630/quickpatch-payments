@@ -24,4 +24,4 @@ kubectl -n quickpatch create secret generic payments-secretos \
 1. Base: `db_payments` con dueño `payments_migrator` y el rol `payments_app` (Ansible). Topics `payment.approved` y `payment.rejected` creados con quickpatch-kafka v0.9.0.
 2. Reemplazar `<vm-mensajeria>` en el ConfigMap por la IP de Kafka del ambiente y `kubectl apply -f deploy/k8s/payments.yaml`. El pod queda esperando la imagen (`:pendiente`).
 3. Push a `release/*`: el pipeline publica la imagen y la fija en el Deployment; el init container aplica las migraciones.
-4. Solo la primera vez, un administrador de la base ejecuta `db/roles.sql` (crea `payments_app`, `payments_outbox` y `payments_reconciler`) y reinicia el servicio con `kubectl -n quickpatch rollout restart deployment/payments`.
+4. Solo la primera vez, un administrador de la base ejecuta `db/roles.sql` (crea `payments_app`, `payments_outbox` y `payments_scheduler`) y reinicia el servicio con `kubectl -n quickpatch rollout restart deployment/payments`.
