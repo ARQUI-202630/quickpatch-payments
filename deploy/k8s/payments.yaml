@@ -1,0 +1,111 @@
+# Despliegue de Payments en k3s (namespace quickpatch), igual en QA y producción.
+# Primer despliegue: crear el Secret payments-secretos (deploy/k8s/README.md), reemplazar <vm-mensajeria> por la IP de
+# Kafka del ambiente y aplicar este archivo con `kubectl apply -f deploy/k8s/payments.yaml`.
+# Después, el pipeline actualiza la imagen con `kubectl set image deployment/payments "*=<imagen>"`.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payments-config
+  namespace: quickpatch
+  labels: { app: payments }
+data:
+  Jwt__Issuer: "quickpatch-identity"
+  Jwt__Audience: "quickpatch"
+  Kafka__BootstrapServers: "<vm-mensajeria>:9092"
+  Kafka__ConsumerGroupId: "payments-service"
+  Outbox__PublisherRole: "payments_outbox"
+  # Conciliación de pagos sin respuesta de la pasarela (AC9-E5).
+  Reconciliation__ReaderRole: "payments_reconciler"
+  Reconciliation__Interval: "00:00:30"
+  Reconciliation__MinimumAge: "00:00:30"
+  Reconciliation__OrphanAge: "00:05:00"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payments
+  namespace: quickpatch
+  labels: { app: payments }
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels: { app: payments }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels: { app: payments }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        # La imagen declara USER app (por nombre); Kubernetes necesita el UID para verificar que no es root.
+        runAsUser: 1654
+        runAsGroup: 1654
+      initContainers:
+        # Migraciones (EF Core bundle) con el rol payments_migrator, dueño de las tablas (DD 10.2).
+        - name: migraciones
+          image: ghcr.io/arqui-202630/quickpatch-payments:pendiente
+          command: ["/app/efbundle", "--connection", "$(MIGRATOR_CONNECTION)"]
+          env:
+            - name: MIGRATOR_CONNECTION
+              valueFrom: { secretKeyRef: { name: payments-secretos, key: migrator-connection } }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+      containers:
+        - name: payments
+          image: ghcr.io/arqui-202630/quickpatch-payments:pendiente
+          ports:
+            - { name: http, containerPort: 8080 }
+          envFrom:
+            - configMapRef: { name: payments-config }
+          env:
+            - name: ConnectionStrings__Payments
+              valueFrom: { secretKeyRef: { name: payments-secretos, key: app-connection } }
+            - name: Jwt__PublicKeyPem
+              valueFrom: { secretKeyRef: { name: payments-secretos, key: jwt-public-key } }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health/live, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          # Pendiente de medición (Documento de Infraestructura, 5.6); límite inicial dentro del presupuesto de VM3.
+          resources:
+            requests: { cpu: 100m, memory: 160Mi }
+            limits: { cpu: 500m, memory: 384Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payments
+  namespace: quickpatch
+  labels: { app: payments }
+spec:
+  selector: { app: payments }
+  ports:
+    - { name: http, port: 8080, targetPort: http }
+---
+# El gateway quita /api y reenvía a Traefik; Traefik elige el servicio por la ruta del contrato. La ruta del pago empieza
+# por /v1/service-requests (DD 8.2.5), que es de ServiceRequest: este IngressRoute la toma por el sufijo /payment con más
+# prioridad que el prefijo de ServiceRequest. Sintaxis de reglas de Traefik v2 (k3s v1.31 trae Traefik 2.11); con Traefik
+# v3 la regla pasa a PathRegexp(`^/v1/service-requests/[0-9a-fA-F-]{36}/payment$`).
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: payments
+  namespace: quickpatch
+spec:
+  entryPoints: [web]
+  routes:
+    - kind: Rule
+      match: Path(`/v1/service-requests/{id:[0-9a-fA-F-]{36}}/payment`)
+      priority: 100
+      services:
+        - name: payments
+          port: http
