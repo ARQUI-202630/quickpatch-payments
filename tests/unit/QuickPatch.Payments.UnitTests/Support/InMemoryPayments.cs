@@ -75,6 +75,13 @@ public sealed class InMemoryPayments : ITenantUnitOfWork, IPaymentRepository, IP
     public Task<Guid?> FindInvoiceIdAsync(Guid paymentId, CancellationToken cancellationToken) =>
         Task.FromResult(Invoices.Where(i => i.PaymentId == paymentId && i.TenantId == currentTenant).Select(i => (Guid?)i.Id).SingleOrDefault());
 
+    public Task<(Invoice Invoice, Payment Payment)?> FindInvoiceAsync(Guid paymentId, CancellationToken cancellationToken)
+    {
+        var invoice = Invoices.SingleOrDefault(i => i.PaymentId == paymentId && i.TenantId == currentTenant);
+        var payment = Visible.SingleOrDefault(p => p.Id == paymentId);
+        return Task.FromResult<(Invoice, Payment)?>(invoice is null || payment is null ? null : (invoice, payment));
+    }
+
     public void Add(Payment payment) => added.Add(payment);
 
     public void AddInvoice(Invoice invoice) => Invoices.Add(invoice);
@@ -95,6 +102,19 @@ public sealed class InMemoryPayments : ITenantUnitOfWork, IPaymentRepository, IP
             tenant, serviceRequest ?? Guid.NewGuid(), client, null, Guid.NewGuid(), 185000m, at ?? DateTimeOffset.UtcNow.AddMinutes(-10));
         Payments.Add(payment);
         return payment;
+    }
+
+    /// <summary>Crea un pago aprobado con su comprobante, como lo deja el pago con la pasarela.</summary>
+    public (Payment Payment, Invoice Invoice) SeedApproved(Guid tenant, Guid client, Billing? billing = null, DateTimeOffset? at = null)
+    {
+        var now = at ?? DateTimeOffset.UtcNow;
+        var payer = billing ?? new Billing("Ana Gómez", "CC", "52123456", "ana@correo.com");
+        var payment = SeedPending(tenant, client, at: now.AddMinutes(-5));
+        payment.StartProcessing(client, payer.ToJson(), now.AddMinutes(-1));
+        payment.Approve("sim_ref", now);
+        var invoice = Invoice.Issue(payment, payer, now);
+        Invoices.Add(invoice);
+        return (payment, invoice);
     }
 }
 

@@ -244,6 +244,24 @@ public class PaymentFlowTests(PaymentsEnvironment env)
         Assert.Equal("185000.00", approved.Value.GetProperty("data").GetProperty("amount").GetString());
         Assert.Equal(1L, await env.ScalarAsync<long>(
             "SELECT count(*) FROM invoices i JOIN payments p ON p.id = i.payment_id WHERE p.service_request_id = @sr", request));
+
+        // Comprobante (payments 1.1.0, SCRUM-44): JSON y PDF para el pagador, 404 para otro tenant por RLS.
+        var paymentId = body.GetProperty("paymentId").GetGuid();
+        var invoiceRoute = new Uri($"/v1/payments/{paymentId}/invoice", UriKind.Relative);
+        using var invoice = await http.GetAsync(invoiceRoute);
+        Assert.Equal(HttpStatusCode.OK, invoice.StatusCode);
+        var invoiceBody = await invoice.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(invoiceId, invoiceBody.GetProperty("invoiceId").GetGuid());
+        Assert.Equal("Ana Gómez", invoiceBody.GetProperty("payer").GetProperty("name").GetString());
+
+        using var pdfRequest = new HttpRequestMessage(HttpMethod.Get, invoiceRoute);
+        pdfRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/pdf"));
+        using var pdf = await http.SendAsync(pdfRequest);
+        Assert.Equal("application/pdf", pdf.Content.Headers.ContentType?.MediaType);
+
+        using var otherTenant = env.Client(Guid.NewGuid(), Guid.NewGuid(), "admin_tenant");
+        using var hidden = await otherTenant.GetAsync(invoiceRoute);
+        Assert.Equal(HttpStatusCode.NotFound, hidden.StatusCode);
     }
 
     [Fact]

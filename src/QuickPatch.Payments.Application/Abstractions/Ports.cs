@@ -1,3 +1,4 @@
+using QuickPatch.Payments.Application.Invoices;
 using QuickPatch.Payments.Domain.Payments;
 
 namespace QuickPatch.Payments.Application.Abstractions;
@@ -27,9 +28,20 @@ public interface IPaymentRepository
 
     Task<Guid?> FindInvoiceIdAsync(Guid paymentId, CancellationToken cancellationToken);
 
+    /// <summary>El comprobante del pago con su pago, o <c>null</c> si el pago no tiene comprobante o no es del tenant.</summary>
+    Task<(Invoice Invoice, Payment Payment)?> FindInvoiceAsync(Guid paymentId, CancellationToken cancellationToken);
+
     void Add(Payment payment);
 
     void AddInvoice(Invoice invoice);
+}
+
+/// <summary>
+/// Genera el PDF del comprobante (RF-24) al pedirlo, con los mismos datos del JSON; no se guarda en ningún almacenamiento.
+/// </summary>
+public interface IInvoicePdfRenderer
+{
+    byte[] Render(InvoiceDocument document);
 }
 
 /// <summary>Pagos que la conciliación debe cerrar. Lee todos los tenants con un rol propio (DD 10.2).</summary>

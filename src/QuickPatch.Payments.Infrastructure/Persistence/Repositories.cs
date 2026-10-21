@@ -66,6 +66,17 @@ public sealed class PaymentRepository(PaymentsDbContext db) : IPaymentRepository
     public Task<Guid?> FindInvoiceIdAsync(Guid paymentId, CancellationToken cancellationToken) =>
         db.Invoices.Where(x => x.PaymentId == paymentId).Select(x => (Guid?)x.Id).SingleOrDefaultAsync(cancellationToken);
 
+    public async Task<(Invoice Invoice, Payment Payment)?> FindInvoiceAsync(Guid paymentId, CancellationToken cancellationToken)
+    {
+        var invoice = await db.Invoices.AsNoTracking().SingleOrDefaultAsync(x => x.PaymentId == paymentId, cancellationToken);
+        if (invoice is null)
+        {
+            return null;
+        }
+
+        return (invoice, await db.Payments.AsNoTracking().SingleAsync(x => x.Id == paymentId, cancellationToken));
+    }
+
     public void Add(Payment payment) => db.Payments.Add(payment);
 
     public void AddInvoice(Invoice invoice) => db.Invoices.Add(invoice);
