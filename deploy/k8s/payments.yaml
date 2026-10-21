@@ -109,3 +109,9 @@ spec:
       services:
         - name: payments
           port: http
+    # Comprobante (payments 1.1.0, SCRUM-44): el prefijo /v1/payments es solo de Payments.
+    - kind: Rule
+      match: PathPrefix(`/v1/payments`)
+      services:
+        - name: payments
+          port: http

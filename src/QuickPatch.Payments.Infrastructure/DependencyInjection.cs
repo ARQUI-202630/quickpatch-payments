@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 using QuickPatch.Payments.Application.Abstractions;
+using QuickPatch.Payments.Infrastructure.Documents;
 using QuickPatch.Payments.Infrastructure.Messaging;
 using QuickPatch.Payments.Infrastructure.Options;
 using QuickPatch.Payments.Infrastructure.Persistence;
@@ -40,6 +41,7 @@ public static class DependencyInjection
 
         // Pasarela simulada del MVP (ADR-009 modificado). Una pasarela certificada se registra aquí en su lugar.
         services.AddSingleton<IPaymentProvider, SimulatedPaymentProvider>();
+        services.AddSingleton<IInvoicePdfRenderer, InvoicePdfRenderer>();
 
         services.AddHealthChecks().AddDbContextCheck<PaymentsDbContext>("postgresql", tags: [ReadyTag]);
 

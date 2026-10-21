@@ -17,9 +17,15 @@ public sealed record AuthenticatedUser(Guid UserId, Guid TenantId, string Role)
     public const string RoleClaim = "role";
     public const string ClientRole = "cliente";
     public const string CompanyContactRole = "empresa_contacto";
+    public const string TenantAdminRole = "admin_tenant";
 
     /// <summary>Pago de la solicitud (contrato payments 1.0.0): el cliente y los usuarios de la empresa cliente.</summary>
     public const string PayerPolicy = "Pagador";
+
+    /// <summary>Comprobante (contrato payments 1.1.0): el pagador y el administrador del tenant.</summary>
+    public const string InvoiceReaderPolicy = "LectorComprobante";
+
+    public bool IsTenantAdmin => Role == TenantAdminRole;
 
     public static bool TryFrom(ClaimsPrincipal principal, out AuthenticatedUser user)
     {
@@ -73,7 +79,10 @@ public static class AuthenticationSetup
             });
 
         services.AddAuthorizationBuilder()
-            .AddPolicy(AuthenticatedUser.PayerPolicy, policy => policy.RequireRole(AuthenticatedUser.ClientRole, AuthenticatedUser.CompanyContactRole));
+            .AddPolicy(AuthenticatedUser.PayerPolicy, policy => policy.RequireRole(AuthenticatedUser.ClientRole, AuthenticatedUser.CompanyContactRole))
+            .AddPolicy(
+                AuthenticatedUser.InvoiceReaderPolicy,
+                policy => policy.RequireRole(AuthenticatedUser.ClientRole, AuthenticatedUser.CompanyContactRole, AuthenticatedUser.TenantAdminRole));
         services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler, ForbiddenAuditHandler>();
 
         return services;

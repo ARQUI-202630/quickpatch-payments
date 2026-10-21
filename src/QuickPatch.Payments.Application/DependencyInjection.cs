@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
+using QuickPatch.Payments.Application.Invoices;
 using QuickPatch.Payments.Application.Payments;
 
 namespace QuickPatch.Payments.Application;
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<PayHandler>();
         services.AddScoped<PaymentSettlement>();
         services.AddScoped<ReconcilePaymentsHandler>();
+        services.AddScoped<GetInvoiceHandler>();
         return services;
     }
 }
