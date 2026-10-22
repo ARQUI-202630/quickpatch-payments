@@ -63,10 +63,17 @@ public static class InvoiceEndpoints
         var format = Negotiate(context.Request.GetTypedHeaders().Accept);
         if (format is null)
         {
-            return Results.Problem(
-                statusCode: StatusCodes.Status406NotAcceptable,
-                title: "Formato no disponible",
-                detail: "El comprobante se entrega como application/json o application/pdf.");
+            // Results.Problem no pasa por Problems.Customize cuando el Accept no admite JSON, y la respuesta saldría sin
+            // correlationId: el 406 se escribe directo como application/problem+json (RFC 9457).
+            var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+            {
+                Status = StatusCodes.Status406NotAcceptable,
+                Title = "Formato no disponible",
+                Detail = "El comprobante se entrega como application/json o application/pdf.",
+                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.7",
+            };
+            problem.Extensions["correlationId"] = Http.CorrelationId.Get(context);
+            return Results.Json(problem, statusCode: StatusCodes.Status406NotAcceptable, contentType: "application/problem+json");
         }
 
         var document = await handler.HandleAsync(user.TenantId, user.UserId, user.IsTenantAdmin, id, cancellationToken);
