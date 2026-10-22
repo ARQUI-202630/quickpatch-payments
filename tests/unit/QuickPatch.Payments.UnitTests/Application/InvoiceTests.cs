@@ -37,7 +37,7 @@ public partial class InvoiceTests
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
         var (payment, _) = store.SeedApproved(tenant, client, at: Now);
-        var pending = store.SeedPending(tenant, client);
+        var pending = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
         var handler = Handler();
 
         Assert.NotNull(await handler.HandleAsync(tenant, Guid.NewGuid(), isTenantAdmin: true, payment.Id, CancellationToken.None));
