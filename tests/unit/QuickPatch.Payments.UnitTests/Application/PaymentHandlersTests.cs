@@ -54,7 +54,7 @@ public class PaymentHandlersTests
     public async Task Consultar_PagoPropio_SinPago_YPagoAjeno()
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
-        var payment = store.SeedPending(tenant, client);
+        var payment = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
         var handler = new GetPaymentHandler(store, store);
 
         var found = Assert.IsType<GetPaymentResult.Found>(await handler.HandleAsync(tenant, client, payment.ServiceRequestId, CancellationToken.None));
@@ -70,7 +70,7 @@ public class PaymentHandlersTests
     public async Task PagarAprobado_EmiteComprobante_YPublicaApproved()
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
-        var payment = store.SeedPending(tenant, client);
+        var payment = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
 
         var result = Assert.IsType<PayResult.Completed>(await Pay().HandleAsync(Command(payment, client), CancellationToken.None));
 
@@ -94,7 +94,7 @@ public class PaymentHandlersTests
     public async Task PagarRechazado_PublicaRejected_YElReintentoAbreUnPagoNuevo()
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
-        var payment = store.SeedPending(tenant, client);
+        var payment = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
 
         var rejected = Assert.IsType<PayResult.Completed>(
             await Pay().HandleAsync(Command(payment, client, "tok_sim_rechazada_x"), CancellationToken.None));
@@ -117,7 +117,7 @@ public class PaymentHandlersTests
     public async Task SinRespuesta_QuedaProcesando_YUnSegundoIntentoEstaEnCurso()
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
-        var payment = store.SeedPending(tenant, client);
+        var payment = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
 
         Assert.IsType<PayResult.ProviderUnavailable>(await Pay().HandleAsync(Command(payment, client, "tok_sim_error_x"), CancellationToken.None));
         Assert.Equal(PaymentStatus.Processing, payment.Status);
@@ -131,7 +131,7 @@ public class PaymentHandlersTests
     public async Task LaPasarelaLanza_SeTrataComoSinRespuesta()
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
-        var payment = store.SeedPending(tenant, client);
+        var payment = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
 
         Assert.IsType<PayResult.ProviderUnavailable>(await Pay(new ScriptedProvider()).HandleAsync(Command(payment, client), CancellationToken.None));
         Assert.Equal(PaymentStatus.Processing, payment.Status);
@@ -142,7 +142,7 @@ public class PaymentHandlersTests
     public async Task SinPago_NoDisponible_YDeOtroCliente_NoEncontrado()
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
-        var payment = store.SeedPending(tenant, client);
+        var payment = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
         var provider = new ScriptedProvider();
 
         Assert.IsType<PayResult.NotFound>(await Pay(provider).HandleAsync(Command(payment, Guid.NewGuid()), CancellationToken.None));
@@ -155,7 +155,7 @@ public class PaymentHandlersTests
     public async Task DosReintentosALaVez_ElIndiceDePagosAbiertosDejaUnoSolo()
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
-        var payment = store.SeedPending(tenant, client);
+        var payment = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
         await Pay().HandleAsync(Command(payment, client, "tok_sim_rechazada_x"), CancellationToken.None);
 
         // Otra petición ya abrió el reintento y sigue procesando: este pago también es pendiente de la misma solicitud.
@@ -168,7 +168,7 @@ public class PaymentHandlersTests
     public async Task Liquidar_PagoInexistenteOYaCerrado_NoCambiaNada()
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
-        var payment = store.SeedPending(tenant, client);
+        var payment = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
         await Pay().HandleAsync(Command(payment, client), CancellationToken.None);
 
         Assert.Null(await Settlement().ApplyAsync(tenant, Guid.NewGuid(), new ProviderResult.Approved("x"), Guid.NewGuid(), CancellationToken.None));
@@ -183,7 +183,7 @@ public class PaymentHandlersTests
     public async Task Conciliar_CierraComoRechazado_SaltaLosQueSiguenSinRespuesta_YLosQueFallan()
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
-        var stuck = store.SeedPending(tenant, client);
+        var stuck = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
         await Pay().HandleAsync(Command(stuck, client, "tok_sim_error_x"), CancellationToken.None);
         store.Pending.Add(new PendingReconciliation(tenant, stuck.Id));
         var provider = new ScriptedProvider { OnQuery = () => new ProviderResult.Unavailable(null) };
@@ -204,7 +204,7 @@ public class PaymentHandlersTests
     public async Task Conciliar_Aprobado_EmiteElComprobanteConLosDatosDeFacturacionGuardados()
     {
         var (tenant, client) = (Guid.NewGuid(), Guid.NewGuid());
-        var stuck = store.SeedPending(tenant, client);
+        var stuck = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
         await Pay().HandleAsync(Command(stuck, client, "tok_sim_error_x"), CancellationToken.None);
         store.Pending.Add(new PendingReconciliation(tenant, stuck.Id));
         var provider = new ScriptedProvider { OnQuery = () => new ProviderResult.Approved("ref") };
