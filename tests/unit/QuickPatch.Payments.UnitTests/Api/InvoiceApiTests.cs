@@ -97,6 +97,9 @@ public class InvoiceApiTests(PaymentsApiFactory factory) : IClassFixture<Payment
         using var response = await http.GetAsync(Route(payment.Id));
 
         Assert.Equal(HttpStatusCode.NotAcceptable, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        using var json = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(json.RootElement.TryGetProperty("correlationId", out _));
     }
 
     [Fact]
