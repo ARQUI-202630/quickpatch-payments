@@ -8,13 +8,15 @@ namespace QuickPatch.Payments.Api.Security;
 
 /// <summary>
 /// Contexto autenticado (SDD: <c>AuthenticatedContext</c>) leído de los claims del JWT emitido por Identity:
-/// <c>sub</c> (userId), <c>tenant_id</c> (tenantId) y <c>role</c>. El tenant nunca se toma del cuerpo ni de cabeceras.
+/// <c>sub</c> (userId), <c>tenant_id</c> (tenantId), <c>role</c> y, para <c>empresa_contacto</c>, <c>company_id</c>.
+/// El tenant y la empresa nunca se toman del cuerpo ni de cabeceras.
 /// </summary>
-public sealed record AuthenticatedUser(Guid UserId, Guid TenantId, string Role)
+public sealed record AuthenticatedUser(Guid UserId, Guid TenantId, string Role, Guid? CompanyId = null)
 {
     public const string SubjectClaim = "sub";
     public const string TenantClaim = "tenant_id";
     public const string RoleClaim = "role";
+    public const string CompanyClaim = "company_id";
     public const string ClientRole = "cliente";
     public const string CompanyContactRole = "empresa_contacto";
     public const string TenantAdminRole = "admin_tenant";
@@ -37,7 +39,14 @@ public sealed record AuthenticatedUser(Guid UserId, Guid TenantId, string Role)
             return false;
         }
 
-        user = new AuthenticatedUser(userId, tenantId, principal.FindFirstValue(RoleClaim) ?? string.Empty);
+        var role = principal.FindFirstValue(RoleClaim) ?? string.Empty;
+
+        // La empresa solo cuenta para empresa_contacto (RN-P6); en otro rol se ignora aunque venga en el token.
+        Guid? companyId = role == CompanyContactRole
+            && Guid.TryParse(principal.FindFirstValue(CompanyClaim), out var company) && company != Guid.Empty
+            ? company
+            : null;
+        user = new AuthenticatedUser(userId, tenantId, role, companyId);
         return true;
     }
 }

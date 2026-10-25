@@ -25,7 +25,7 @@ public class PaymentHandlersTests
         new(store, store, provider ?? new SimulatedPaymentProvider(), Settlement(), clock, NullLogger<PayHandler>.Instance);
 
     private static PayCommand Command(Payment payment, Guid user, string token = "tok_sim_aprobada_abc") =>
-        new(payment.TenantId, user, Guid.NewGuid(), payment.ServiceRequestId, token,
+        new(payment.TenantId, user, null, Guid.NewGuid(), payment.ServiceRequestId, token,
             Billing.Create(token, "Ana Gómez", "CC", "52123456", "ana@correo.com"));
 
     private static EventEnvelope<ServiceRequestCompletedData> Completed(Guid tenant, Guid serviceRequest, string amount = "185000.00", Guid? eventId = null) =>
@@ -57,13 +57,13 @@ public class PaymentHandlersTests
         var payment = store.SeedPending(tenant, client, at: Now.AddMinutes(-10));
         var handler = new GetPaymentHandler(store, store);
 
-        var found = Assert.IsType<GetPaymentResult.Found>(await handler.HandleAsync(tenant, client, payment.ServiceRequestId, CancellationToken.None));
+        var found = Assert.IsType<GetPaymentResult.Found>(await handler.HandleAsync(tenant, client, null, payment.ServiceRequestId, CancellationToken.None));
         Assert.Null(found.View.InvoiceId);
-        Assert.IsType<GetPaymentResult.NotFound>(await handler.HandleAsync(tenant, Guid.NewGuid(), payment.ServiceRequestId, CancellationToken.None));
-        Assert.IsType<GetPaymentResult.NotReady>(await handler.HandleAsync(tenant, client, Guid.NewGuid(), CancellationToken.None));
+        Assert.IsType<GetPaymentResult.NotFound>(await handler.HandleAsync(tenant, Guid.NewGuid(), null, payment.ServiceRequestId, CancellationToken.None));
+        Assert.IsType<GetPaymentResult.NotReady>(await handler.HandleAsync(tenant, client, null, Guid.NewGuid(), CancellationToken.None));
 
         // Otro tenant no ve el pago (RLS).
-        Assert.IsType<GetPaymentResult.NotReady>(await handler.HandleAsync(Guid.NewGuid(), client, payment.ServiceRequestId, CancellationToken.None));
+        Assert.IsType<GetPaymentResult.NotReady>(await handler.HandleAsync(Guid.NewGuid(), client, null, payment.ServiceRequestId, CancellationToken.None));
     }
 
     [Fact]

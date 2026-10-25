@@ -98,10 +98,17 @@ public sealed class Payment
     }
 
     /// <summary>
-    /// Quién puede pagar: el usuario que creó la solicitud. El pago por cualquier contacto de la empresa (RN-P6) llega con
-    /// SCRUM-43, cuando el token traiga la empresa del usuario.
+    /// Quién puede pagar y ver el pago: el usuario que creó la solicitud y, si la solicitud es de una empresa, cualquier
+    /// <c>empresa_contacto</c> de esa misma empresa (RN-P6). <paramref name="companyId"/> sale del token, nunca del cliente.
     /// </summary>
-    public bool CanBePaidBy(Guid userId) => userId != Guid.Empty && userId == ClientId;
+    public bool CanBePaidBy(Guid userId, Guid? companyId) =>
+        userId != Guid.Empty && (userId == ClientId || (CompanyId is { } company && companyId == company));
+
+    /// <summary>
+    /// Quién lee el comprobante (contrato payments 1.1.0): el usuario que pagó. En una solicitud de empresa es el
+    /// <c>empresa_contacto</c> que autorizó el pago, no cualquier contacto de la empresa.
+    /// </summary>
+    public bool CanReadInvoice(Guid userId) => userId != Guid.Empty && userId == (AuthorizedByUserId ?? ClientId);
 
     /// <summary>Pago nuevo para reintentar tras un rechazo, con el mismo monto, cliente y técnico (RN-P4).</summary>
     public Payment Retry(DateTimeOffset now)

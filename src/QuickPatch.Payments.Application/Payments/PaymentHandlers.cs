@@ -23,7 +23,8 @@ public abstract record GetPaymentResult
 /// <summary><c>GET /v1/service-requests/{id}/payment</c>: el pago más reciente de la solicitud.</summary>
 public sealed class GetPaymentHandler(ITenantUnitOfWork unitOfWork, IPaymentRepository payments)
 {
-    public Task<GetPaymentResult> HandleAsync(Guid tenantId, Guid userId, Guid serviceRequestId, CancellationToken cancellationToken) =>
+    public Task<GetPaymentResult> HandleAsync(
+        Guid tenantId, Guid userId, Guid? companyId, Guid serviceRequestId, CancellationToken cancellationToken) =>
         unitOfWork.ExecuteAsync<GetPaymentResult>(
             tenantId,
             async ct =>
@@ -34,7 +35,7 @@ public sealed class GetPaymentHandler(ITenantUnitOfWork unitOfWork, IPaymentRepo
                     return new GetPaymentResult.NotReady();
                 }
 
-                if (!payment.CanBePaidBy(userId))
+                if (!payment.CanBePaidBy(userId, companyId))
                 {
                     return new GetPaymentResult.NotFound();
                 }
@@ -44,7 +45,9 @@ public sealed class GetPaymentHandler(ITenantUnitOfWork unitOfWork, IPaymentRepo
             cancellationToken);
 }
 
-public sealed record PayCommand(Guid TenantId, Guid UserId, Guid CorrelationId, Guid ServiceRequestId, string PaymentToken, Billing Billing);
+/// <summary><paramref name="CompanyId"/>: empresa del token del <c>empresa_contacto</c> (RN-P6); nula para el cliente.</summary>
+public sealed record PayCommand(
+    Guid TenantId, Guid UserId, Guid? CompanyId, Guid CorrelationId, Guid ServiceRequestId, string PaymentToken, Billing Billing);
 
 public abstract record PayResult
 {
@@ -130,7 +133,7 @@ public sealed partial class PayHandler(
             return (new PayResult.NotReady(), null);
         }
 
-        if (!latest.CanBePaidBy(command.UserId))
+        if (!latest.CanBePaidBy(command.UserId, command.CompanyId))
         {
             return (new PayResult.NotFound(), null);
         }
