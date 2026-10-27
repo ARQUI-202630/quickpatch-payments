@@ -42,9 +42,29 @@ public class PaymentDomainTests
         var client = Guid.NewGuid();
         var payment = Payment.CreatePending(Guid.NewGuid(), Guid.NewGuid(), client, null, Guid.NewGuid(), 10m, Now);
 
-        Assert.True(payment.CanBePaidBy(client));
-        Assert.False(payment.CanBePaidBy(Guid.NewGuid()));
-        Assert.False(payment.CanBePaidBy(Guid.Empty));
+        Assert.True(payment.CanBePaidBy(client, null));
+        Assert.False(payment.CanBePaidBy(Guid.NewGuid(), null));
+        Assert.False(payment.CanBePaidBy(Guid.Empty, null));
+        Assert.False(payment.CanBePaidBy(Guid.NewGuid(), Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void EnUnaSolicitudDeEmpresa_CualquierContactoDeLaMismaEmpresaPuedePagar()
+    {
+        var (client, company) = (Guid.NewGuid(), Guid.NewGuid());
+        var payment = Payment.CreatePending(Guid.NewGuid(), Guid.NewGuid(), client, company, Guid.NewGuid(), 10m, Now);
+
+        Assert.True(payment.CanBePaidBy(client, company));
+        Assert.True(payment.CanBePaidBy(Guid.NewGuid(), company));
+        Assert.False(payment.CanBePaidBy(Guid.NewGuid(), Guid.NewGuid()));
+        Assert.False(payment.CanBePaidBy(Guid.NewGuid(), null));
+        Assert.False(payment.CanBePaidBy(Guid.Empty, company));
+
+        var colleague = Guid.NewGuid();
+        payment.StartProcessing(colleague, "{}", Now);
+        Assert.True(payment.CanReadInvoice(colleague));
+        Assert.False(payment.CanReadInvoice(client));
+        Assert.False(payment.CanReadInvoice(Guid.Empty));
     }
 
     [Fact]

@@ -40,10 +40,11 @@ public class PaymentApiTests(PaymentsApiFactory factory) : IClassFixture<Payment
 {
     private static Uri Route(Guid serviceRequest) => new($"/v1/service-requests/{serviceRequest}/payment", UriKind.Relative);
 
-    private HttpClient Client(Guid user, Guid tenant, string role = "cliente")
+    private HttpClient Client(Guid user, Guid tenant, string role = "cliente", Guid? company = null)
     {
         var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.Create(user, tenant, role));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer", TestTokens.Create(user, tenant, role, companyId: company));
         return client;
     }
 
@@ -142,12 +143,12 @@ public class PaymentApiTests(PaymentsApiFactory factory) : IClassFixture<Payment
     }
 
     [Fact]
-    public async Task OtroCliente_404_OtroTenant_404_YConEmpresaContacto_TambienSoloElDueno()
+    public async Task OtroCliente_404_OtroTenant_404_YUnContactoDeEmpresaEnUnaSolicitudSinEmpresa_404()
     {
         var (tenant, _, request) = Seed();
         using var otherClient = Client(Guid.NewGuid(), tenant);
         using var otherTenant = Client(Guid.NewGuid(), Guid.NewGuid());
-        using var companyContact = Client(Guid.NewGuid(), tenant, "empresa_contacto");
+        using var companyContact = Client(Guid.NewGuid(), tenant, "empresa_contacto", Guid.NewGuid());
 
         using var a = await otherClient.GetAsync(Route(request));
         using var b = await otherClient.PostAsJsonAsync(Route(request), Body());
@@ -159,6 +160,41 @@ public class PaymentApiTests(PaymentsApiFactory factory) : IClassFixture<Payment
         Assert.Equal(HttpStatusCode.NotFound, b.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, c.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, d.StatusCode);
+    }
+
+    [Fact]
+    public async Task SolicitudDeEmpresa_OtroContactoDeLaMismaEmpresaPaga_YQuedaComoQuienAutorizo()
+    {
+        var (tenant, creator, company) = (Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        Guid request;
+        lock (factory.Store)
+        {
+            request = factory.Store.SeedPending(tenant, creator, company: company).ServiceRequestId;
+        }
+
+        var colleague = Guid.NewGuid();
+        using var otherCompany = Client(Guid.NewGuid(), tenant, "empresa_contacto", Guid.NewGuid());
+        using var withoutCompany = Client(Guid.NewGuid(), tenant, "empresa_contacto");
+        using var sameCompany = Client(colleague, tenant, "empresa_contacto", company);
+
+        using var a = await otherCompany.PostAsJsonAsync(Route(request), Body());
+        using var b = await withoutCompany.GetAsync(Route(request));
+        using var c = await sameCompany.GetAsync(Route(request));
+        using var d = await sameCompany.PostAsJsonAsync(Route(request), Body());
+
+        Assert.Equal(HttpStatusCode.NotFound, a.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, b.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, c.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, d.StatusCode);
+        Assert.Equal("aprobado", (await Json(d)).GetProperty("status").GetString());
+        lock (factory.Store)
+        {
+            var paid = factory.Store.Payments.Single(x => x.ServiceRequestId == request);
+            Assert.Equal(company, paid.CompanyId);
+            Assert.Equal(creator, paid.ClientId);
+            Assert.Equal(colleague, paid.AuthorizedByUserId);
+            Assert.Equal(185000m, paid.Amount);
+        }
     }
 
     [Fact]

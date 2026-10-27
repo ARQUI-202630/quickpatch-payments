@@ -96,10 +96,11 @@ public sealed class InMemoryPayments : ITenantUnitOfWork, IPaymentRepository, IP
         Task.FromResult<IReadOnlyList<PendingReconciliation>>([.. Pending]);
 
     /// <summary>Crea un pago pendiente de 185.000 como si hubiera llegado <c>service-request.completed</c>.</summary>
-    public Payment SeedPending(Guid tenant, Guid client, Guid? serviceRequest = null, DateTimeOffset? at = null)
+    public Payment SeedPending(
+        Guid tenant, Guid client, Guid? serviceRequest = null, DateTimeOffset? at = null, Guid? company = null)
     {
         var payment = Payment.CreatePending(
-            tenant, serviceRequest ?? Guid.NewGuid(), client, null, Guid.NewGuid(), 185000m, at ?? DateTimeOffset.UtcNow.AddMinutes(-10));
+            tenant, serviceRequest ?? Guid.NewGuid(), client, company, Guid.NewGuid(), 185000m, at ?? DateTimeOffset.UtcNow.AddMinutes(-10));
         Payments.Add(payment);
         return payment;
     }

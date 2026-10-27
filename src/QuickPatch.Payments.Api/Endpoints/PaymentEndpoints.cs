@@ -49,7 +49,7 @@ public static class PaymentEndpoints
             return Unauthorized();
         }
 
-        return await handler.HandleAsync(user.TenantId, user.UserId, id, cancellationToken) switch
+        return await handler.HandleAsync(user.TenantId, user.UserId, user.CompanyId, id, cancellationToken) switch
         {
             GetPaymentResult.Found found => Results.Ok(PaymentResponse.From(found.View)),
             GetPaymentResult.NotReady => Results.Problem(
@@ -81,7 +81,7 @@ public static class PaymentEndpoints
                 ex.Errors.ToDictionary(e => e.Key, e => e.Value), title: "La solicitud tiene datos inválidos", type: Problems.Validation);
         }
 
-        var command = new PayCommand(user.TenantId, user.UserId, CorrelationId.Get(context), id, body.PaymentToken!.Trim(), billing);
+        var command = new PayCommand(user.TenantId, user.UserId, user.CompanyId, CorrelationId.Get(context), id, body.PaymentToken!.Trim(), billing);
         return await handler.HandleAsync(command, cancellationToken) switch
         {
             PayResult.Completed completed => Results.Ok(PaymentResponse.From(completed.View)),

@@ -27,7 +27,7 @@ public sealed class GetInvoiceHandler(ITenantUnitOfWork unitOfWork, IPaymentRepo
             async ct =>
             {
                 var found = await payments.FindInvoiceAsync(paymentId, ct);
-                if (found is not var (invoice, payment) || (!isTenantAdmin && !payment.CanBePaidBy(userId)))
+                if (found is not var (invoice, payment) || (!isTenantAdmin && !payment.CanReadInvoice(userId)))
                 {
                     return null;
                 }
