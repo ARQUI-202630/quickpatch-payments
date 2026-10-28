@@ -1,4 +1,4 @@
-namespace QuickPatch.Payments.Domain;
+namespace QuickPatch.Payments.Domain.Common;
 
 /// <summary>
 /// Capa de dominio: entidades, value objects y reglas de negocio (SDD 6.3).
