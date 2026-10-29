@@ -31,6 +31,13 @@ public interface IPaymentRepository
     /// <summary>El comprobante del pago con su pago, o <c>null</c> si el pago no tiene comprobante o no es del tenant.</summary>
     Task<(Invoice Invoice, Payment Payment)?> FindInvoiceAsync(Guid paymentId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Pagos vigentes del técnico, sin los rechazados (RN-P4), del más reciente al más antiguo, con el total para paginar
+    /// (contrato payments 1.2.0, RF-25). RLS deja solo los del tenant de la transacción.
+    /// </summary>
+    Task<(IReadOnlyList<Payment> Items, int TotalItems)> ListReceivedAsync(
+        Guid technicianId, string? status, int page, int size, CancellationToken cancellationToken);
+
     void Add(Payment payment);
 
     void AddInvoice(Invoice invoice);
