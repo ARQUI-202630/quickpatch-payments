@@ -38,7 +38,10 @@ public sealed record ReceivedPaymentResponse(
 /// <summary>Esquema <c>ReceivedPaymentPage</c> del contrato payments 1.2.0.</summary>
 public sealed record ReceivedPaymentPageResponse(IReadOnlyList<ReceivedPaymentResponse> Items, int Page, int Size, int TotalItems);
 
-/// <summary><c>GET /v1/payments/received</c> del contrato payments 1.2.0 (RF-25, SCRUM-45 y SCRUM-501).</summary>
+/// <summary>
+/// <c>GET /v1/payments/received</c> del contrato payments 1.2.0 (RF-25, SCRUM-45 y SCRUM-501): el <c>tecnico</c> ve los suyos y
+/// el <c>proveedor</c> los de su equipo, con el filtro <c>technicianId</c> que solo el proveedor usa.
+/// </summary>
 public static class ReceivedPaymentEndpoints
 {
     private const int DefaultSize = 20;
@@ -68,10 +71,23 @@ public static class ReceivedPaymentEndpoints
         }
 
         var errors = new Dictionary<string, string[]>();
-        if (technicianId is not null)
+        var isProvider = user.Role == AuthenticatedUser.ProviderRole;
+        Guid? teamMember = null;
+        if (technicianId is not null && !isProvider)
         {
             // El técnico solo ve sus pagos: el filtro es del proveedor (contrato payments 1.2.0).
             errors["technicianId"] = ["El técnico no usa este filtro: ve solo sus pagos."];
+        }
+        else if (technicianId is not null)
+        {
+            if (Guid.TryParse(technicianId, out var parsed) && parsed != Guid.Empty)
+            {
+                teamMember = parsed;
+            }
+            else
+            {
+                errors["technicianId"] = ["Debe ser el identificador (UUID) de un técnico de tu equipo."];
+            }
         }
 
         if (status is not null && !ReceivedPaymentsHandler.ListedStatuses.Contains(status))
@@ -86,7 +102,9 @@ public static class ReceivedPaymentEndpoints
             return Results.ValidationProblem(errors, title: "La solicitud tiene datos inválidos", type: Problems.Validation);
         }
 
-        var result = await handler.HandleForTechnicianAsync(user.TenantId, user.UserId, status, pageNumber, pageSize, cancellationToken);
+        var result = isProvider
+            ? await handler.HandleForProviderAsync(user.TenantId, user.UserId, teamMember, status, pageNumber, pageSize, cancellationToken)
+            : await handler.HandleForTechnicianAsync(user.TenantId, user.UserId, status, pageNumber, pageSize, cancellationToken);
         return Results.Ok(new ReceivedPaymentPageResponse(
             [.. result.Items.Select(ReceivedPaymentResponse.From)], result.Page, result.Size, result.TotalItems));
     }

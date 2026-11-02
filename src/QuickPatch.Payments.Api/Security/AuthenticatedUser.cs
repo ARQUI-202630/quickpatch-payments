@@ -21,6 +21,7 @@ public sealed record AuthenticatedUser(Guid UserId, Guid TenantId, string Role, 
     public const string CompanyContactRole = "empresa_contacto";
     public const string TenantAdminRole = "admin_tenant";
     public const string TechnicianRole = "tecnico";
+    public const string ProviderRole = "proveedor";
 
     /// <summary>Pago de la solicitud (contrato payments 1.0.0): el cliente y los usuarios de la empresa cliente.</summary>
     public const string PayerPolicy = "Pagador";
@@ -29,8 +30,8 @@ public sealed record AuthenticatedUser(Guid UserId, Guid TenantId, string Role, 
     public const string InvoiceReaderPolicy = "LectorComprobante";
 
     /// <summary>
-    /// Pagos recibidos (contrato payments 1.2.0, RF-25): el técnico. El proveedor queda pendiente de la proyección del
-    /// equipo (P-02), que el DD todavía no define en Payments.
+    /// Pagos recibidos (contrato payments 1.2.0, RF-25): el técnico, los suyos, y el proveedor, los de su equipo (proyección
+    /// <c>payment_technicians</c>, P-02).
     /// </summary>
     public const string ReceivedPaymentsReaderPolicy = "LectorPagosRecibidos";
 
@@ -99,7 +100,9 @@ public static class AuthenticationSetup
             .AddPolicy(
                 AuthenticatedUser.InvoiceReaderPolicy,
                 policy => policy.RequireRole(AuthenticatedUser.ClientRole, AuthenticatedUser.CompanyContactRole, AuthenticatedUser.TenantAdminRole))
-            .AddPolicy(AuthenticatedUser.ReceivedPaymentsReaderPolicy, policy => policy.RequireRole(AuthenticatedUser.TechnicianRole));
+            .AddPolicy(
+                AuthenticatedUser.ReceivedPaymentsReaderPolicy,
+                policy => policy.RequireRole(AuthenticatedUser.TechnicianRole, AuthenticatedUser.ProviderRole));
         services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler, ForbiddenAuditHandler>();
 
         return services;

@@ -13,6 +13,8 @@ public sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> option
 
     public DbSet<Invoice> Invoices => Set<Invoice>();
 
+    public DbSet<PaymentTechnician> PaymentTechnicians => Set<PaymentTechnician>();
+
     public DbSet<OutboxEventRecord> OutboxEvents => Set<OutboxEventRecord>();
 
     public DbSet<ProcessedEventRecord> ProcessedEvents => Set<ProcessedEventRecord>();
@@ -79,6 +81,17 @@ public sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> option
             e.Property(x => x.PublishedAt).HasColumnName("published_at");
             e.Property(x => x.Attempts).HasColumnName("attempts");
             e.HasIndex(x => x.CreatedAt).HasDatabaseName("ix_outbox_events_pending").HasFilter("published_at IS NULL");
+        });
+
+        modelBuilder.Entity<PaymentTechnician>(e =>
+        {
+            e.ToTable("payment_technicians");
+            e.HasKey(x => x.TechnicianId);
+            e.Property(x => x.TechnicianId).HasColumnName("technician_id").ValueGeneratedNever();
+            e.Property(x => x.TenantId).HasColumnName("tenant_id");
+            e.Property(x => x.ProviderId).HasColumnName("provider_id");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.HasIndex(x => x.ProviderId).HasDatabaseName("ix_payment_technicians_provider");
         });
 
         modelBuilder.Entity<ProcessedEventRecord>(e =>

@@ -17,7 +17,7 @@ namespace QuickPatch.Payments.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -169,6 +169,32 @@ namespace QuickPatch.Payments.Infrastructure.Persistence.Migrations
                         .HasFilter("status IN ('pendiente', 'procesando')");
 
                     b.ToTable("payments", (string)null);
+                });
+
+            modelBuilder.Entity("QuickPatch.Payments.Domain.Payments.PaymentTechnician", b =>
+                {
+                    b.Property<Guid>("TechnicianId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("technician_id");
+
+                    b.Property<Guid?>("ProviderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("provider_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("TechnicianId");
+
+                    b.HasIndex("ProviderId")
+                        .HasDatabaseName("ix_payment_technicians_provider");
+
+                    b.ToTable("payment_technicians", (string)null);
                 });
 
             modelBuilder.Entity("QuickPatch.Payments.Infrastructure.Persistence.OutboxEventRecord", b =>

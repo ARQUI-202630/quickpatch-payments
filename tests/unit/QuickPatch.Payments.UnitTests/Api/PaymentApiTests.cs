@@ -28,6 +28,7 @@ public sealed class PaymentsApiFactory : WebApplicationFactory<Program>
         {
             services.AddSingleton<ITenantUnitOfWork>(Store);
             services.AddSingleton<IPaymentRepository>(Store);
+            services.AddSingleton<IPaymentTechnicianRepository>(Store);
             services.AddSingleton<IProcessedEventRepository>(Store);
             services.AddSingleton<IOutbox>(Store);
             services.AddSingleton<IReconciliationSource>(Store);

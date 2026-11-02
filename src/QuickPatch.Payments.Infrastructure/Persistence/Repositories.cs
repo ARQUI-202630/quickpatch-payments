@@ -81,7 +81,27 @@ public sealed class PaymentRepository(PaymentsDbContext db) : IPaymentRepository
         Guid technicianId, string? status, int page, int size, CancellationToken cancellationToken)
     {
         // Usa ix_payments_technician_status (DD 5.12). RLS ya limita la consulta al tenant de la transacción.
-        var query = db.Payments.AsNoTracking().Where(p => p.TechnicianId == technicianId);
+        return await PageReceivedAsync(db.Payments.AsNoTracking().Where(p => p.TechnicianId == technicianId), status, page, size, cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<Payment> Items, int TotalItems)> ListReceivedForProviderAsync(
+        Guid providerId, Guid? technicianId, string? status, int page, int size, CancellationToken cancellationToken)
+    {
+        // El equipo sale de la proyección payment_technicians (P-02); con technicianId, un técnico que no es del equipo no
+        // coincide con ninguna fila y la lista queda vacía. RLS limita las dos tablas al tenant de la transacción.
+        var team = db.PaymentTechnicians.AsNoTracking().Where(t => t.ProviderId == providerId);
+        if (technicianId is { } id)
+        {
+            team = team.Where(t => t.TechnicianId == id);
+        }
+
+        return await PageReceivedAsync(
+            db.Payments.AsNoTracking().Where(p => team.Any(t => t.TechnicianId == p.TechnicianId)), status, page, size, cancellationToken);
+    }
+
+    private static async Task<(IReadOnlyList<Payment> Items, int TotalItems)> PageReceivedAsync(
+        IQueryable<Payment> query, string? status, int page, int size, CancellationToken cancellationToken)
+    {
         query = status is null
             ? query.Where(p => p.Status == PaymentStatus.Pending || p.Status == PaymentStatus.Processing || p.Status == PaymentStatus.Approved)
             : query.Where(p => p.Status == status);
@@ -104,6 +124,14 @@ public sealed class PaymentRepository(PaymentsDbContext db) : IPaymentRepository
     public void Add(Payment payment) => db.Payments.Add(payment);
 
     public void AddInvoice(Invoice invoice) => db.Invoices.Add(invoice);
+}
+
+public sealed class PaymentTechnicianRepository(PaymentsDbContext db) : IPaymentTechnicianRepository
+{
+    public Task<PaymentTechnician?> FindAsync(Guid technicianId, CancellationToken cancellationToken) =>
+        db.PaymentTechnicians.SingleOrDefaultAsync(x => x.TechnicianId == technicianId, cancellationToken);
+
+    public void Add(PaymentTechnician technician) => db.PaymentTechnicians.Add(technician);
 }
 
 public sealed class ProcessedEventRepository(PaymentsDbContext db) : IProcessedEventRepository
