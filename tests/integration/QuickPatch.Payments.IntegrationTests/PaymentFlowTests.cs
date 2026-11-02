@@ -110,7 +110,8 @@ public sealed class PaymentsEnvironment : IAsyncLifetime
     }
 
     /// <summary>Publica <c>service-request.completed</c> como lo haría ServiceRequest.</summary>
-    public async Task PublishCompletedAsync(Guid tenant, Guid serviceRequest, Guid client, string amount = "185000.00")
+    public async Task PublishCompletedAsync(
+        Guid tenant, Guid serviceRequest, Guid client, string amount = "185000.00", Guid? technician = null)
     {
         using var producer = new ProducerBuilder<string, string>(new ProducerConfig { BootstrapServers = KafkaServers }).Build();
         var value = JsonSerializer.Serialize(new
@@ -127,7 +128,7 @@ public sealed class PaymentsEnvironment : IAsyncLifetime
                 serviceRequestId = serviceRequest,
                 clientId = client,
                 companyId = (Guid?)null,
-                technicianId = Guid.NewGuid(),
+                technicianId = technician ?? Guid.NewGuid(),
                 quoteId = Guid.NewGuid(),
                 totalAmount = amount,
                 completedAt = DateTimeOffset.UtcNow,
