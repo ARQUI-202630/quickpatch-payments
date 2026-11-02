@@ -35,6 +35,7 @@ public static class DependencyInjection
 
         services.AddScoped<ITenantUnitOfWork, TenantUnitOfWork>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<IPaymentTechnicianRepository, PaymentTechnicianRepository>();
         services.AddScoped<IProcessedEventRepository, ProcessedEventRepository>();
         services.AddScoped<IReconciliationSource, ReconciliationSource>();
         services.AddScoped<IOutbox, EfOutbox>();
@@ -73,6 +74,19 @@ public static class DependencyInjection
             services.AddHostedService(sp => sp.GetRequiredService<OutboxPublisher>());
             services.AddSingleton<ServiceRequestCompletedConsumer>();
             services.AddHostedService(sp => sp.GetRequiredService<ServiceRequestCompletedConsumer>());
+
+            // Consumidor del equipo de cada proveedor (SCRUM-501, P-02): un IConsumer propio, porque cada uno tiene su suscripción.
+            services.AddSingleton(sp => new TechnicianRegisteredConsumer(
+                sp.GetRequiredService<IServiceScopeFactory>(),
+                new ConsumerBuilder<string, string>(new ConsumerConfig
+                {
+                    BootstrapServers = kafka.BootstrapServers,
+                    GroupId = kafka.ConsumerGroupId,
+                    EnableAutoCommit = false,
+                    AutoOffsetReset = AutoOffsetReset.Earliest,
+                }).Build(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<TechnicianRegisteredConsumer>>()));
+            services.AddHostedService(sp => sp.GetRequiredService<TechnicianRegisteredConsumer>());
         }
 
         return services;

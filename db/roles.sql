@@ -19,6 +19,8 @@ GRANT USAGE ON SCHEMA public TO payments_app, payments_outbox, payments_schedule
 
 -- Rol del servicio: todo bajo RLS. Los pagos no se borran; los comprobantes no se modifican.
 GRANT SELECT, INSERT, UPDATE ON payments TO payments_app;
+-- Equipo de cada proveedor (SCRUM-501, P-02): lo alimenta el consumidor de technician.registered.
+GRANT SELECT, INSERT, UPDATE ON payment_technicians TO payments_app;
 GRANT SELECT, INSERT ON invoices TO payments_app;
 GRANT SELECT, INSERT ON processed_events TO payments_app;
 GRANT INSERT ON outbox_events TO payments_app;

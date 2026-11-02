@@ -38,6 +38,14 @@ public interface IPaymentRepository
     Task<(IReadOnlyList<Payment> Items, int TotalItems)> ListReceivedAsync(
         Guid technicianId, string? status, int page, int size, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Pagos vigentes de los técnicos del equipo del proveedor (proyección <c>payment_technicians</c>, P-02), con el mismo
+    /// orden y filtros; <paramref name="technicianId"/> acota a un técnico y, si no es del equipo, la lista sale vacía
+    /// (contrato payments 1.2.0).
+    /// </summary>
+    Task<(IReadOnlyList<Payment> Items, int TotalItems)> ListReceivedForProviderAsync(
+        Guid providerId, Guid? technicianId, string? status, int page, int size, CancellationToken cancellationToken);
+
     void Add(Payment payment);
 
     void AddInvoice(Invoice invoice);
@@ -59,6 +67,14 @@ public interface IReconciliationSource
 
 /// <summary>Pago en <c>procesando</c> que espera conciliación.</summary>
 public sealed record PendingReconciliation(Guid TenantId, Guid PaymentId);
+
+/// <summary>Proyección del equipo de cada proveedor (tabla <c>payment_technicians</c>, P-02, SCRUM-501).</summary>
+public interface IPaymentTechnicianRepository
+{
+    Task<PaymentTechnician?> FindAsync(Guid technicianId, CancellationToken cancellationToken);
+
+    void Add(PaymentTechnician technician);
+}
 
 /// <summary>Idempotencia de los consumidores (tabla <c>processed_events</c>, RN-EV1).</summary>
 public interface IProcessedEventRepository

@@ -26,7 +26,7 @@ namespace QuickPatch.Payments.IntegrationTests;
 /// </summary>
 public sealed class PaymentsEnvironment : IAsyncLifetime
 {
-    public static readonly string[] Topics = ["service-request.completed", "payment.approved", "payment.rejected"];
+    public static readonly string[] Topics = ["service-request.completed", "technician.registered", "payment.approved", "payment.rejected"];
 
     private readonly PostgreSqlContainer postgres = new PostgreSqlBuilder("postgres:16-alpine").WithDatabase("db_payments").Build();
     private readonly KafkaContainer kafka = new KafkaBuilder("confluentinc/cp-kafka:7.7.1").Build();
@@ -135,6 +135,26 @@ public sealed class PaymentsEnvironment : IAsyncLifetime
             },
         });
         await producer.ProduceAsync("service-request.completed", new Message<string, string> { Key = serviceRequest.ToString(), Value = value });
+    }
+
+    /// <summary>Publica <c>technician.registered</c> como lo haría Identity (P-02, SCRUM-501).</summary>
+    public async Task PublishRegisteredAsync(Guid tenant, Guid technician, Guid? provider, DateTimeOffset updatedAt, Guid? eventId = null) =>
+        await PublishRawAsync("technician.registered", technician.ToString(), JsonSerializer.Serialize(new
+        {
+            eventId = eventId ?? Guid.NewGuid(),
+            eventType = "technician.registered",
+            eventVersion = 1,
+            occurredAt = updatedAt,
+            correlationId = Guid.NewGuid(),
+            tenantId = tenant,
+            producer = "identity-service",
+            data = new { technicianId = technician, specialtyId = Guid.NewGuid(), providerId = provider, verificationStatus = "pendiente", updatedAt },
+        }));
+
+    public async Task PublishRawAsync(string topic, string key, string value)
+    {
+        using var producer = new ProducerBuilder<string, string>(new ProducerConfig { BootstrapServers = KafkaServers }).Build();
+        await producer.ProduceAsync(topic, new Message<string, string> { Key = key, Value = value });
     }
 
     /// <summary>Lee de Kafka el primer mensaje del topic con la clave dada.</summary>

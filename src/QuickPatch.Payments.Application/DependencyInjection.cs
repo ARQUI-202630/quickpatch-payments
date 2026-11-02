@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<ReconcilePaymentsHandler>();
         services.AddScoped<GetInvoiceHandler>();
         services.AddScoped<ReceivedPaymentsHandler>();
+        services.AddScoped<TechnicianRegisteredHandler>();
         return services;
     }
 }

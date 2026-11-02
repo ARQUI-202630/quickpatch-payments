@@ -20,6 +20,7 @@ public sealed record EventEnvelope<TData>(
 public static class EventTypes
 {
     public const string ServiceRequestCompleted = "service-request.completed";
+    public const string TechnicianRegistered = "technician.registered";
     public const string PaymentApproved = "payment.approved";
     public const string PaymentRejected = "payment.rejected";
 }
@@ -55,6 +56,17 @@ public sealed record PaymentRejectedData(
     string Amount,
     string? ReasonCode,
     DateTimeOffset RejectedAt);
+
+/// <summary>
+/// <c>data</c> de <c>technician.registered</c> v1 (<c>quickpatch-kafka</c> v0.10.0, P-02): solo se usan el técnico, su proveedor y
+/// <c>updatedAt</c> como versión (ADR-017).
+/// </summary>
+public sealed record TechnicianRegisteredData(
+    Guid TechnicianId,
+    Guid SpecialtyId,
+    Guid? ProviderId,
+    string VerificationStatus,
+    DateTimeOffset UpdatedAt);
 
 public static class EventSerializer
 {

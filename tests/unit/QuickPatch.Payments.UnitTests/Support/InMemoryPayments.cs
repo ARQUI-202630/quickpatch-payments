@@ -7,7 +7,7 @@ namespace QuickPatch.Payments.UnitTests.Support;
 /// Puertos en memoria. Emula RLS (solo se ve el tenant de la transacción en curso) y el índice único de pagos abiertos
 /// (RN-P5): si al confirmar hay dos pagos abiertos para una solicitud, descarta los nuevos y lanza el conflicto.
 /// </summary>
-public sealed class InMemoryPayments : ITenantUnitOfWork, IPaymentRepository, IProcessedEventRepository, IOutbox, IReconciliationSource
+public sealed class InMemoryPayments : ITenantUnitOfWork, IPaymentRepository, IPaymentTechnicianRepository, IProcessedEventRepository, IOutbox, IReconciliationSource
 {
     private readonly Lock gate = new();
     private Guid? currentTenant;
@@ -16,6 +16,9 @@ public sealed class InMemoryPayments : ITenantUnitOfWork, IPaymentRepository, IP
     public List<Payment> Payments { get; } = [];
 
     public List<Invoice> Invoices { get; } = [];
+
+    /// <summary>Proyección <c>payment_technicians</c> (P-02): técnico y proveedor de cada tenant.</summary>
+    public List<PaymentTechnician> Team { get; } = [];
 
     public List<OutboxMessage> Outbox { get; } = [];
 
@@ -93,6 +96,27 @@ public sealed class InMemoryPayments : ITenantUnitOfWork, IPaymentRepository, IP
         IReadOnlyList<Payment> items = skip >= matching.Count ? [] : [.. matching.Skip((int)skip).Take(size)];
         return Task.FromResult((items, matching.Count));
     }
+
+    public Task<(IReadOnlyList<Payment> Items, int TotalItems)> ListReceivedForProviderAsync(
+        Guid providerId, Guid? technicianId, string? status, int page, int size, CancellationToken cancellationToken)
+    {
+        var members = Team
+            .Where(t => t.TenantId == currentTenant && t.ProviderId == providerId && (technicianId is null || t.TechnicianId == technicianId))
+            .Select(t => t.TechnicianId)
+            .ToHashSet();
+        var matching = Visible
+            .Where(p => members.Contains(p.TechnicianId) && p.Status != PaymentStatus.Rejected && (status is null || p.Status == status))
+            .OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
+            .ToList();
+        var skip = (long)(page - 1) * size;
+        IReadOnlyList<Payment> items = skip >= matching.Count ? [] : [.. matching.Skip((int)skip).Take(size)];
+        return Task.FromResult((items, matching.Count));
+    }
+
+    Task<PaymentTechnician?> IPaymentTechnicianRepository.FindAsync(Guid technicianId, CancellationToken cancellationToken) =>
+        Task.FromResult(Team.SingleOrDefault(t => t.TenantId == currentTenant && t.TechnicianId == technicianId));
+
+    public void Add(PaymentTechnician technician) => Team.Add(technician);
 
     public void Add(Payment payment) => added.Add(payment);
 
