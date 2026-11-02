@@ -44,6 +44,7 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 
 app.MapPaymentEndpoints();
 app.MapInvoiceEndpoints();
+app.MapReceivedPaymentEndpoints();
 
 app.Run();
 

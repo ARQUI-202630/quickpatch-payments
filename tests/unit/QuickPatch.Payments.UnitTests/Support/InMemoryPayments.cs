@@ -82,6 +82,18 @@ public sealed class InMemoryPayments : ITenantUnitOfWork, IPaymentRepository, IP
         return Task.FromResult<(Invoice, Payment)?>(invoice is null || payment is null ? null : (invoice, payment));
     }
 
+    public Task<(IReadOnlyList<Payment> Items, int TotalItems)> ListReceivedAsync(
+        Guid technicianId, string? status, int page, int size, CancellationToken cancellationToken)
+    {
+        var matching = Visible
+            .Where(p => p.TechnicianId == technicianId && p.Status != PaymentStatus.Rejected && (status is null || p.Status == status))
+            .OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
+            .ToList();
+        var skip = (long)(page - 1) * size;
+        IReadOnlyList<Payment> items = skip >= matching.Count ? [] : [.. matching.Skip((int)skip).Take(size)];
+        return Task.FromResult((items, matching.Count));
+    }
+
     public void Add(Payment payment) => added.Add(payment);
 
     public void AddInvoice(Invoice invoice) => Invoices.Add(invoice);
@@ -97,10 +109,11 @@ public sealed class InMemoryPayments : ITenantUnitOfWork, IPaymentRepository, IP
 
     /// <summary>Crea un pago pendiente de 185.000 como si hubiera llegado <c>service-request.completed</c>.</summary>
     public Payment SeedPending(
-        Guid tenant, Guid client, Guid? serviceRequest = null, DateTimeOffset? at = null, Guid? company = null)
+        Guid tenant, Guid client, Guid? serviceRequest = null, DateTimeOffset? at = null, Guid? company = null, Guid? technician = null)
     {
         var payment = Payment.CreatePending(
-            tenant, serviceRequest ?? Guid.NewGuid(), client, company, Guid.NewGuid(), 185000m, at ?? DateTimeOffset.UtcNow.AddMinutes(-10));
+            tenant, serviceRequest ?? Guid.NewGuid(), client, company, technician ?? Guid.NewGuid(), 185000m,
+            at ?? DateTimeOffset.UtcNow.AddMinutes(-10));
         Payments.Add(payment);
         return payment;
     }

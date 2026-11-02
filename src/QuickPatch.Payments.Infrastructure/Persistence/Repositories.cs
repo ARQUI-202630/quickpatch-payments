@@ -77,6 +77,30 @@ public sealed class PaymentRepository(PaymentsDbContext db) : IPaymentRepository
         return (invoice, await db.Payments.AsNoTracking().SingleAsync(x => x.Id == paymentId, cancellationToken));
     }
 
+    public async Task<(IReadOnlyList<Payment> Items, int TotalItems)> ListReceivedAsync(
+        Guid technicianId, string? status, int page, int size, CancellationToken cancellationToken)
+    {
+        // Usa ix_payments_technician_status (DD 5.12). RLS ya limita la consulta al tenant de la transacción.
+        var query = db.Payments.AsNoTracking().Where(p => p.TechnicianId == technicianId);
+        query = status is null
+            ? query.Where(p => p.Status == PaymentStatus.Pending || p.Status == PaymentStatus.Processing || p.Status == PaymentStatus.Approved)
+            : query.Where(p => p.Status == status);
+
+        var total = await query.CountAsync(cancellationToken);
+        if (page - 1 > (total - 1) / size)
+        {
+            // Página más allá del final (también evita el desbordamiento de Skip con páginas enormes).
+            return ([], total);
+        }
+
+        var items = await query
+            .OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
+            .Skip((page - 1) * size)
+            .Take(size)
+            .ToListAsync(cancellationToken);
+        return (items, total);
+    }
+
     public void Add(Payment payment) => db.Payments.Add(payment);
 
     public void AddInvoice(Invoice invoice) => db.Invoices.Add(invoice);
