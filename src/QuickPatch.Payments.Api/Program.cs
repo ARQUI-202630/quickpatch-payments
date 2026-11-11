@@ -7,6 +7,7 @@ using QuickPatch.Payments.Api.Http;
 using QuickPatch.Payments.Api.Security;
 using QuickPatch.Payments.Application;
 using QuickPatch.Payments.Infrastructure;
+using QuickPatch.Transversal.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 

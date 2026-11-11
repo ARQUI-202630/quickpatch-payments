@@ -6,6 +6,7 @@ using Npgsql;
 using QuickPatch.Payments.Application.Abstractions;
 using QuickPatch.Payments.Domain.Payments;
 using QuickPatch.Payments.Infrastructure.Options;
+using QuickPatch.Transversal.Persistence;
 
 namespace QuickPatch.Payments.Infrastructure.Persistence;
 

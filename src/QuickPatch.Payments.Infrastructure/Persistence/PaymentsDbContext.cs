@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
 using QuickPatch.Payments.Domain.Payments;
+using QuickPatch.Transversal.Messaging;
 
 namespace QuickPatch.Payments.Infrastructure.Persistence;
 
@@ -107,7 +108,7 @@ public sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> option
 }
 
 /// <summary>Fila de <c>outbox_events</c> (DD 5.15).</summary>
-public sealed class OutboxEventRecord
+public sealed class OutboxEventRecord : IOutboxRecord
 {
     public Guid Id { get; set; }
 
