@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
+using QuickPatch.Payments.Application.Abstractions;
 using QuickPatch.Payments.Application.Invoices;
 using QuickPatch.Payments.Domain.Payments;
 using QuickPatch.Payments.Infrastructure.Documents;
