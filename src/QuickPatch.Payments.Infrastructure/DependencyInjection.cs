@@ -10,6 +10,7 @@ using QuickPatch.Payments.Infrastructure.Messaging;
 using QuickPatch.Payments.Infrastructure.Options;
 using QuickPatch.Payments.Infrastructure.Persistence;
 using QuickPatch.Payments.Infrastructure.Providers;
+using QuickPatch.Transversal.Messaging;
 
 namespace QuickPatch.Payments.Infrastructure;
 
@@ -70,8 +71,8 @@ public static class DependencyInjection
                 AutoOffsetReset = AutoOffsetReset.Earliest,
             }).Build());
 
-            services.AddSingleton<OutboxPublisher>();
-            services.AddHostedService(sp => sp.GetRequiredService<OutboxPublisher>());
+            services.AddSingleton<OutboxPublisher<PaymentsDbContext, OutboxEventRecord>>();
+            services.AddHostedService(sp => sp.GetRequiredService<OutboxPublisher<PaymentsDbContext, OutboxEventRecord>>());
             services.AddSingleton<ServiceRequestCompletedConsumer>();
             services.AddHostedService(sp => sp.GetRequiredService<ServiceRequestCompletedConsumer>());
 

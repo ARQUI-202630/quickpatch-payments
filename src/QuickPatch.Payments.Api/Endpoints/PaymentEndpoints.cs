@@ -3,6 +3,7 @@ using QuickPatch.Payments.Api.Security;
 using QuickPatch.Payments.Application.Payments;
 using QuickPatch.Payments.Domain.Common;
 using QuickPatch.Payments.Domain.Payments;
+using QuickPatch.Transversal.Http;
 
 namespace QuickPatch.Payments.Api.Endpoints;
 
