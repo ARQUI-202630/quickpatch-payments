@@ -197,7 +197,7 @@ namespace QuickPatch.Payments.Infrastructure.Persistence.Migrations
                     b.ToTable("payment_technicians", (string)null);
                 });
 
-            modelBuilder.Entity("QuickPatch.Payments.Infrastructure.Persistence.OutboxEventRecord", b =>
+            modelBuilder.Entity("QuickPatch.Transversal.Messaging.OutboxEventRecord", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
@@ -243,7 +243,7 @@ namespace QuickPatch.Payments.Infrastructure.Persistence.Migrations
                     b.ToTable("outbox_events", (string)null);
                 });
 
-            modelBuilder.Entity("QuickPatch.Payments.Infrastructure.Persistence.ProcessedEventRecord", b =>
+            modelBuilder.Entity("QuickPatch.Transversal.Messaging.ProcessedEventRecord", b =>
                 {
                     b.Property<Guid>("EventId")
                         .HasColumnType("uuid")
