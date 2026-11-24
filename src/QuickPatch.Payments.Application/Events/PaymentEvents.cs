@@ -6,35 +6,6 @@ using QuickPatch.Payments.Domain.Payments;
 
 namespace QuickPatch.Payments.Application.Events;
 
-/// <summary>Sobre común de los eventos (DD 8.2.1; <c>quickpatch-kafka/events</c>).</summary>
-public sealed record EventEnvelope<TData>(
-    Guid EventId,
-    string EventType,
-    int EventVersion,
-    DateTimeOffset OccurredAt,
-    Guid CorrelationId,
-    Guid TenantId,
-    string Producer,
-    TData Data);
-
-public static class EventTypes
-{
-    public const string ServiceRequestCompleted = "service-request.completed";
-    public const string TechnicianRegistered = "technician.registered";
-    public const string PaymentApproved = "payment.approved";
-    public const string PaymentRejected = "payment.rejected";
-}
-
-/// <summary><c>data</c> de <c>service-request.completed</c> v1 (quickpatch-kafka v0.7.0).</summary>
-public sealed record ServiceRequestCompletedData(
-    Guid ServiceRequestId,
-    Guid ClientId,
-    Guid? CompanyId,
-    Guid TechnicianId,
-    Guid QuoteId,
-    string TotalAmount,
-    DateTimeOffset CompletedAt);
-
 /// <summary><c>data</c> de <c>payment.approved</c> v1 (quickpatch-kafka v0.9.0).</summary>
 public sealed record PaymentApprovedData(
     Guid PaymentId,
@@ -56,31 +27,6 @@ public sealed record PaymentRejectedData(
     string Amount,
     string? ReasonCode,
     DateTimeOffset RejectedAt);
-
-/// <summary>
-/// <c>data</c> de <c>technician.registered</c> v1 (<c>quickpatch-kafka</c> v0.10.0, P-02): solo se usan el técnico, su proveedor y
-/// <c>updatedAt</c> como versión (ADR-017).
-/// </summary>
-public sealed record TechnicianRegisteredData(
-    Guid TechnicianId,
-    Guid SpecialtyId,
-    Guid? ProviderId,
-    string VerificationStatus,
-    DateTimeOffset UpdatedAt);
-
-public static class EventSerializer
-{
-    public const string Producer = "payments-service";
-
-    public static JsonSerializerOptions Options { get; } = new(JsonSerializerDefaults.Web)
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-    };
-
-    public static string Serialize<T>(T value) => JsonSerializer.Serialize(value, Options);
-
-    public static T? Deserialize<T>(string json) => JsonSerializer.Deserialize<T>(json, Options);
-}
 
 /// <summary>Eventos del pago listos para el Outbox. La clave del mensaje es la solicitud, como en los topics del contrato.</summary>
 public static class PaymentEvents

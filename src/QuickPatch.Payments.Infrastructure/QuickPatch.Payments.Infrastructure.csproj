@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\shared\dotnet\src\QuickPatch.Transversal.Messaging\QuickPatch.Transversal.Messaging.csproj" />
     <ProjectReference Include="..\QuickPatch.Payments.Application\QuickPatch.Payments.Application.csproj" />
     <ProjectReference Include="..\QuickPatch.Payments.Domain\QuickPatch.Payments.Domain.csproj" />
   </ItemGroup>

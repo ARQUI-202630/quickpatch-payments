@@ -4,6 +4,7 @@ using QuickPatch.Payments.Api.Security;
 using QuickPatch.Payments.Application.Abstractions;
 using QuickPatch.Payments.Application.Invoices;
 using QuickPatch.Payments.Domain.Payments;
+using QuickPatch.Transversal.Http;
 
 namespace QuickPatch.Payments.Api.Endpoints;
 
@@ -72,7 +73,7 @@ public static class InvoiceEndpoints
                 Detail = "El comprobante se entrega como application/json o application/pdf.",
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.5.7",
             };
-            problem.Extensions["correlationId"] = Http.CorrelationId.Get(context);
+            problem.Extensions["correlationId"] = CorrelationId.Get(context);
             return Results.Json(problem, statusCode: StatusCodes.Status406NotAcceptable, contentType: "application/problem+json");
         }
 
