@@ -1,4 +1,3 @@
-using QuickPatch.Payments.Application.Invoices;
 using QuickPatch.Payments.Domain.Payments;
 
 namespace QuickPatch.Payments.Application.Abstractions;
